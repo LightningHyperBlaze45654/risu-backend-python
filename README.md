@@ -1,2 +1,5 @@
-# nolangchain-RAG-ChatHistory
- llama-cpp-python really easily breaks when appending both RAG and chat history, this is why I made this
+# Baseline for other project
+open-sourced it for contribution / creative usage
+NOT functioning currently.
+
+Do not use this on publishing realted stuffs. Need editing
