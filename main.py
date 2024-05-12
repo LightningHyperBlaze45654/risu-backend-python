@@ -4,10 +4,10 @@ from monolyth import monolyth_generator
 from helper import hybrid_lorebook_pulling, summary, emotion_pull
 
 llm = Llama(
-    model_path = "./models/Llama-3-Soliloquy-8B.Q4_K_M.gguf",
+    model_path = "./models/Llama-3-Soliloquy-8B-v2-Q4_K_M-imat.gguf",
     n_gpu_layers= -1,
     temperature = 1.0,
-    n_ctx = 24000,
+    n_ctx = 8192,
     repeat_penalty = 2.0,
     verbose = False
     )
@@ -39,13 +39,6 @@ def get_chat_history(file_path):
         history = []
     return history
 
-def simple_conversational_generator(user_prompt, system_prompt, chat_history=[]):
-
-    return
-
-def RAG_generator(user_prompt, system_prompt, retriever):
-    return
-
 def conversational_generator_summary(user_prompt, system_prompt, chat_history_summary, chat_history_short=[]):
     input_prompt = []
     input_prompt.append({"role": "system", "content": f"{system_prompt}"})
@@ -58,20 +51,34 @@ def conversational_generator_summary(user_prompt, system_prompt, chat_history_su
     )
     return res['choices'][0]['message']
 
+def conversational_summary_lorebook(user_prompt, system_prompt, chat_history_summary, lorebook, chat_history):
+    input_prompt = []
+    activate_words, lore_list = lorebook['activate_words'], lorebook['lore_list']
+    retrieved_lore = hybrid_lorebook_pulling(chat_history=chat_history[-4:], lorebook=lore_list, activation_words=activate_words)
+    system_prompt = system_prompt.format(chat_summary = chat_history_summary, lorebook = retrieved_lore)
+    input_prompt.append({"role": "system", "content": f"{system_prompt}"})
+    input_prompt.extend(chat_history)
+    input_prompt.append({"role": "user", "content": f"{user_prompt}"})
+    res = llm.create_chat_completion(
+        messages=input_prompt,
+        temperature=0.8,
+        presence_penalty=0.8
+    )
+    return res['choices'][0]['message']
+
 def chat_loop(char_name):
     history = get_chat_history("./chat_history/chat.json")
     with open(f'./character_prompts/{char_name}.json', 'r', encoding='utf-8') as file:
         char_prompt = file.read()
-        char = char_prompt['char']
-        char_desc = char_prompt['char_desc']
+        char, char_desc = char_prompt['char'], char_prompt['char_desc']
         lorebook = char_prompt['lorebook']
-    with open('./system_prompts/short_chat.txt', 'r', encoding='utf-8') as file:
+    with open('./system_prompts/pingpong_test.txt', 'r', encoding='utf-8') as file:
         system_prompt = file.read()
-    system_prompt = system_prompt.format(char=char, char_desc=char_desc, lorebook=lorebook)
+    system_prompt = system_prompt.format(char=char, char_desc=char_desc)
     try:
         while True:
             user_input = input("You: ")
-            response = monolyth_generator(user_prompt=user_input, system_prompt=system_prompt, chat_history=history[-100:])
+            response = conversational_summary_lorebook(user_prompt=user_input, system_prompt=system_prompt, lorebook=lorebook, chat_history=history[-100:])
             print("AI:", response['content'])
             # Append current chat to history and file
             current_chat = [{"role": "user", "content": user_input}, response]
