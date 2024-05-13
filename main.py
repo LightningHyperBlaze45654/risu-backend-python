@@ -39,7 +39,21 @@ def get_chat_history(file_path):
         history = []
     return history
 
-def conversational_generator_summary(user_prompt, system_prompt, chat_history_summary, chat_history_short=[]):
+def prompt_formatter(user_prompt, system_prompt, char_json, chat_history, chat_history_summary="", username = "user"):
+    formatted_prompt = []
+    char = char_json["char"]  
+    char_desc = char_json["char_desc"]
+    lorebook = char_json['lorebook']
+    activate_words, lore_list = lorebook['activate_words'], lorebook['lore_list']
+    retrieved_lore = hybrid_lorebook_pulling(chat_history=chat_history[-4:], lorebook=lore_list, activation_words=activate_words)
+    system_prompt = system_prompt.format(char=char, user=username, char_desc = char_desc, chat_summary = chat_history_summary, lorebook = retrieved_lore)
+    formatted_prompt.append({"role": "system", "content": f"{system_prompt}"})
+    formatted_prompt.extend(chat_history)
+    formatted_prompt.append({"role": "user", "content": f"{user_prompt}"})
+    print(formatted_prompt)
+    return formatted_prompt
+
+def conversational_generator_summary(user_prompt, system_prompt, chat_history_summary, chat_history_short=[]): #Not used currently.
     input_prompt = []
     input_prompt.append({"role": "system", "content": f"{system_prompt}"})
     input_prompt.extend(chat_history_short)
@@ -51,34 +65,29 @@ def conversational_generator_summary(user_prompt, system_prompt, chat_history_su
     )
     return res['choices'][0]['message']
 
-def conversational_summary_lorebook(user_prompt, system_prompt, chat_history_summary, lorebook, chat_history):
-    input_prompt = []
-    activate_words, lore_list = lorebook['activate_words'], lorebook['lore_list']
-    retrieved_lore = hybrid_lorebook_pulling(chat_history=chat_history[-4:], lorebook=lore_list, activation_words=activate_words)
-    system_prompt = system_prompt.format(chat_summary = chat_history_summary, lorebook = retrieved_lore)
-    input_prompt.append({"role": "system", "content": f"{system_prompt}"})
-    input_prompt.extend(chat_history)
-    input_prompt.append({"role": "user", "content": f"{user_prompt}"})
+# currently adapted version
+def conversational_summary_lorebook(user_prompt, system_prompt, char_json, chat_history, chat_history_summary="", username = "user"):
+    input_prompt = prompt_formatter(user_prompt, system_prompt, char_json, chat_history, chat_history_summary, username)
     res = llm.create_chat_completion(
         messages=input_prompt,
         temperature=0.8,
         presence_penalty=0.8
     )
     return res['choices'][0]['message']
+# TODO: Need to make a token counter, to literally STUFF every chat history possible.
+# TODO: Need to make supa/hypa/hanurai memory
 
-def chat_loop(char_name):
+def chat_loop(char_name, user_name):
     history = get_chat_history("./chat_history/chat.json")
     with open(f'./character_prompts/{char_name}.json', 'r', encoding='utf-8') as file:
-        char_prompt = file.read()
-        char, char_desc = char_prompt['char'], char_prompt['char_desc']
-        lorebook = char_prompt['lorebook']
+        char_json = json.load(file)
     with open('./system_prompts/pingpong_test.txt', 'r', encoding='utf-8') as file:
         system_prompt = file.read()
-    system_prompt = system_prompt.format(char=char, char_desc=char_desc)
+    # reading required history, character information json(dict), and system prompt(which will be formatted in the upper function)
     try:
         while True:
             user_input = input("You: ")
-            response = conversational_summary_lorebook(user_prompt=user_input, system_prompt=system_prompt, lorebook=lorebook, chat_history=history[-100:])
+            response = conversational_summary_lorebook(user_prompt=user_input, system_prompt=system_prompt, char_json=char_json, chat_history=history[-100:], username=user_name)
             print("AI:", response['content'])
             # Append current chat to history and file
             current_chat = [{"role": "user", "content": user_input}, response]
@@ -87,4 +96,4 @@ def chat_loop(char_name):
     except KeyboardInterrupt:
         print("Chat stopped")
 
-chat_loop("hatsune_miku")
+chat_loop("hatsune_miku", "Hyperblaze")

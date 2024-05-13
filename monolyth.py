@@ -1,5 +1,4 @@
 import json
-from embedding import ChatEmbeddings
 import requests
 import os
 
@@ -62,7 +61,7 @@ def monolyth_generator(user_prompt, system_prompt, chat_history, modelname="soli
 
 def chat_loop():
     history = get_chat_history("./chat_history/chat.json")
-    with open('./sysprompt/sqweegirl.txt', 'r', encoding='utf-8') as file:
+    with open('./sysprompt/hatsune_miku.json', 'r', encoding='utf-8') as file:
         system_prompt = file.read()
     try:
         while True: 
@@ -75,5 +74,3 @@ def chat_loop():
             append_chat_history("./chat_history/chat.json", current_chat)
     except KeyboardInterrupt:
         print("Chat stopped")
-
-chat_loop()
