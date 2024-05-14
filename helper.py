@@ -47,9 +47,10 @@ print("Unified List of Documents:")
 for doc in docs:
     print(doc)'''
 
-def summary(chat_history):
+def summary(user_name, chat_history):
+    formatted_query = '\n'.join([f"{user_name if turn['role'] == 'user' else turn['role']}: {turn['content']}" for turn in chat_history]).strip()
     chatsum = pipeline("summarization", model="KoalaAI/ChatSum-Large")
-    return(chatsum(chat_history))
+    return(chatsum(formatted_query))
 
 '''
 PULLING OUT INFORMATION WITH SEPERATE MODERATOR IS NOT WORKING
