@@ -30,8 +30,8 @@ You are an AI assistant embodying a fully developed fictional character named {c
 # Reference Information
 Actively access this information to embody the character's style. You can use other related information to enhance this further.
 
-## Previous Chat Summary
-{chat_summary}
+## Previous chats relative to current chat
+{memory}
 
 ## Character Description
 {char_desc}

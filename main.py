@@ -1,7 +1,7 @@
 import json
 from llama_cpp import Llama
 from helper import hybrid_lorebook_pulling, summary, emotion_pull
-
+from monolyth import monolyth_generator
 # Function to append chat history to a JSON file
 def append_chat_history(file_path, chat_list):
     try:
@@ -33,9 +33,9 @@ def format_system_prompt(system_prompt, char_json, chat_history, chat_history_su
     return system_prompt.format(char=char, user=username, char_desc=char_desc, chat_summary=chat_history_summary, lorebook=retrieved_lore)
 
 # Function to format the entire prompt for the chat
-def prompt_formatter(user_prompt, system_prompt, char_json, chat_history, chat_history_summary="", username="user"):
+def prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory="", username="user"):
     formatted_prompt = []
-    system_prompt = format_system_prompt(system_prompt, char_json, chat_history, chat_history_summary, username)
+    system_prompt = format_system_prompt(system_prompt, char_json, chat_history, memory, username)
     formatted_prompt.append({"role": "system", "content": system_prompt})
     formatted_prompt.extend(chat_history)
     formatted_prompt.append({"role": "user", "content": user_prompt})
@@ -51,9 +51,14 @@ def conversational_generator_summary(llm, input_prompt):
     return res['choices'][0]['message']
 
 # Function to generate a chat response with lorebook integration
-def conversational_summary_lorebook(llm, user_prompt, system_prompt, char_json, chat_history, chat_history_summary="", username="user"):
-    input_prompt = prompt_formatter(user_prompt, system_prompt, char_json, chat_history, chat_history_summary, username)
+def conversational_memory_lorebook(llm, user_prompt, system_prompt, char_json, chat_history, memory="", username="user"):
+    input_prompt = prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory, username)
     return conversational_generator_summary(llm, input_prompt)
+
+def monolyth_conv_memory_lorebook(user_prompt, system_prompt, char_json, chat_history, modelname = "soliloquy-l3", memory="", username="user"):
+    input_prompt = prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory, username)
+    return monolyth_generator(input_prompt, modelname)
+
 
 # Main chat loop function
 def chat_loop(llm, char_name, user_name):
@@ -62,11 +67,10 @@ def chat_loop(llm, char_name, user_name):
         char_json = json.load(file)
     with open('./system_prompts/pingpong_test.txt', 'r', encoding='utf-8') as file:
         system_prompt = file.read()
-
     try:
         while True:
             user_input = input("You: ")
-            response = conversational_summary_lorebook(
+            response = conversational_memory_lorebook(
                 llm=llm,
                 user_prompt=user_input,
                 system_prompt=system_prompt,

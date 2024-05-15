@@ -29,26 +29,15 @@ def get_chat_history(file_path):
         history = []
     return history
 
-def simple_conversational_generator(user_prompt, system_prompt, chat_history=[]):
-
-    return
-
-def RAG_generator(user_prompt, system_prompt, retriever):
-    return
-
-def monolyth_generator(user_prompt, system_prompt, chat_history, modelname="soliloquy-l3", extra_state=""):
+def monolyth_generator(input_prompt, modelname="soliloquy-l3"):
     API = os.getenv('MONOLYTH_API_KEY')
-    input_prompt = []
-    input_prompt.append({"role": "system", "content": f"{system_prompt}"})
-    input_prompt.extend(chat_history)
-    input_prompt.append({"role": "user", "content": f"{user_prompt}"})
     response = requests.post(
         url="https://api.monolyth.ai/v1/chat/completions",
         headers={
             "Authorization": f"Bearer {API}",
         },
     data=json.dumps({
-        "model": f"{modelname}", # Ex: gpt-3.5-turbo
+        "model": f"{modelname}",
         "messages": input_prompt,
         "repeat_penalty": 1,
         "temperature" : 0.7,
