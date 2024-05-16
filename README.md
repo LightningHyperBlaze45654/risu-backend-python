@@ -14,14 +14,14 @@ v0.0.1 (2024/5/15)
  - Has summary, chat based retrieval functions inside(not used yet)
 
 TODO:
-Add supa/hypa/hanurai memory []
-Add Claude, OpenAI, Gemini, Openrouter API support []
-Add exllamav2, TensorRT-LLM support for local []
-Add regular expression []
-Add chat history manipulating function while on chat loop []
-Add character card creating functions []
-Create a frontend(required for better testing) [] 
-Add DB for both chat history or vectorDB []
+- Add supa/hypa/hanurai memory [-]
+- Add Claude, OpenAI, Gemini, Openrouter API support [-]
+- Add exllamav2, TensorRT-LLM support for local [-]
+- Add regular expression [-]
+- Add chat history manipulating function while on chat loop [-]
+- Add character card creating functions [-]
+- Create a frontend(required for better testing) [-] 
+- Add DB for both chat history or vectorDB [-]
 
 
 **I hope this could be a great baseline for projects to start!**
