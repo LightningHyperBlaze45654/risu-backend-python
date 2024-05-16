@@ -2,6 +2,11 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoTokenizer, AutoModel, pipeline, AutoModelForSequenceClassification
 
+'''
+Embedding, sentiment analysis in this function
+hybrid_lorebook_pulling also works by vector similarity.
+'''
+
 # Function to pull relevant documents from the lorebook based on chat history and activation words
 def hybrid_lorebook_pulling(chat_history=[], lorebook=[], activation_words=[], prob_threshold=0.2):
     try:
