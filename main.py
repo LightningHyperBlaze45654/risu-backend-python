@@ -24,13 +24,13 @@ def get_chat_history(file_path):
     return history
 
 # Function to format the system prompt using character data and chat history
-def format_system_prompt(system_prompt, char_json, chat_history, chat_history_summary, username):
+def format_system_prompt(system_prompt, char_json, chat_history, memory, username):
     char = char_json["char"]
     char_desc = char_json["char_desc"]
     lorebook = char_json['lorebook']
     activate_words, lore_list = lorebook['activate_words'], lorebook['lore_list']
     retrieved_lore = hybrid_lorebook_pulling(chat_history=chat_history[-4:], lorebook=lore_list, activation_words=activate_words)
-    return system_prompt.format(char=char, user=username, char_desc=char_desc, chat_summary=chat_history_summary, lorebook=retrieved_lore)
+    return system_prompt.format(char=char, user=username, char_desc=char_desc, memory=memory, lorebook=retrieved_lore)
 
 # Function to format the entire prompt for the chat
 def prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory="", username="user"):
@@ -88,7 +88,7 @@ def chat_loop(llm, char_name, user_name):
 # Main entry point
 if __name__ == "__main__":
     llm = Llama(
-        model_path="./models/Llama-3-Soliloquy-8B-v2-Q4_K_M.gguf",
+        model_path="./models/Llama-3-Soliloquy-8B-v2.Q4_K_M.gguf",
         n_gpu_layers=-1,
         temperature=1.0,
         n_ctx=8192,
