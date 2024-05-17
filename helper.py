@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 from transformers import AutoTokenizer, AutoModel, pipeline, AutoModelForSequenceClassification
+from FlagEmbedding import BGEM3FlagModel
 
 '''
 Embedding, sentiment analysis in this function
@@ -8,14 +9,22 @@ hybrid_lorebook_pulling also works by vector similarity.
 Referenced from memory.py for supa/hypa/hanurai memory
 '''
 
-# Function to format chat history into a single query string
+# find documents via activation words match
+def filter_docs_by_words(lorebook, activation_words):
+    word_based_docs = {}
+    for doc in lorebook:
+        if any(any(word.lower() in doc.lower() for word in sublist) for sublist in activation_words):
+            word_based_docs[doc] = "Activation Word Match"
+    return word_based_docs
+# format chat history into a single query string to be used in embedding models
 def format_chat_history(chat_history):
     return '\n'.join([f"{turn['role']}: {turn['content']}" for turn in chat_history]).strip()
-# Same function, changes user name to given name
+# Same function, but if role is user, change it to user_name
 def format_user_chat_history(chat_history, user_name):
     return '\n'.join([f"{user_name if turn['role'] == 'user' else turn['role']}: {turn['content']}" for turn in chat_history]).strip()
 
-# Function to pull relevant documents from the lorebook based on chat history and activation words
+
+# pull relevant documents from the lorebook based on chat history embedding model, activation words match
 def hybrid_lorebook_pulling(chat_history=[], lorebook=[], activation_words=[], prob_threshold=0.2):
     try:
         # Initialize tokenizers and models
@@ -51,13 +60,13 @@ def hybrid_lorebook_pulling(chat_history=[], lorebook=[], activation_words=[], p
         print(f"Unexpected error: {e}")
         return "No additional information"
 
-# Function to find documents containing activation words
-def filter_docs_by_words(lorebook, activation_words):
-    word_based_docs = {}
-    for doc in lorebook:
-        if any(any(word.lower() in doc.lower() for word in sublist) for sublist in activation_words):
-            word_based_docs[doc] = "Activation Word Match"
-    return word_based_docs
+def embed_chat_history_bgem3(chat_history):
+    return
+
+
+def embed_chat_history_dragon(chat_history):
+    return
+
 
 # Function to summarize chat history
 def summary(user_name, chat_history):
