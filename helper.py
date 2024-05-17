@@ -5,7 +5,15 @@ from transformers import AutoTokenizer, AutoModel, pipeline, AutoModelForSequenc
 '''
 Embedding, sentiment analysis in this function
 hybrid_lorebook_pulling also works by vector similarity.
+Referenced from memory.py for supa/hypa/hanurai memory
 '''
+
+# Function to format chat history into a single query string
+def format_chat_history(chat_history):
+    return '\n'.join([f"{turn['role']}: {turn['content']}" for turn in chat_history]).strip()
+# Same function, changes user name to given name
+def format_user_chat_history(chat_history, user_name):
+    return '\n'.join([f"{user_name if turn['role'] == 'user' else turn['role']}: {turn['content']}" for turn in chat_history]).strip()
 
 # Function to pull relevant documents from the lorebook based on chat history and activation words
 def hybrid_lorebook_pulling(chat_history=[], lorebook=[], activation_words=[], prob_threshold=0.2):
@@ -42,13 +50,6 @@ def hybrid_lorebook_pulling(chat_history=[], lorebook=[], activation_words=[], p
     except Exception as e:
         print(f"Unexpected error: {e}")
         return "No additional information"
-
-# Function to format chat history into a single query string
-def format_chat_history(chat_history):
-    return '\n'.join([f"{turn['role']}: {turn['content']}" for turn in chat_history]).strip()
-# Same function, changes user name to given name
-def format_user_chat_history(chat_history, user_name):
-    return '\n'.join([f"{user_name if turn['role'] == 'user' else turn['role']}: {turn['content']}" for turn in chat_history]).strip()
 
 # Function to find documents containing activation words
 def filter_docs_by_words(lorebook, activation_words):
