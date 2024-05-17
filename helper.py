@@ -68,9 +68,8 @@ def embed_chat_history_bgem3(chat_history):
 def embed_chat_history_dragon(chat_history):
     tokenizer = AutoTokenizer.from_pretrained('nvidia/dragon-multiturn-query-encoder')
     query_encoder = AutoModel.from_pretrained('nvidia/dragon-multiturn-query-encoder')
-    # Format chat history(this will be the query)
-    # didn't used user_name formatting here, can be changed
-    formatted_query = format_chat_history(chat_history)
+    # Format chat history(this will be the query), not using user_name formatting
+    formatted_query = format_chat_history(chat_history) 
     query_input = tokenizer(formatted_query, return_tensors='pt')
     query_emb = query_encoder(**query_input).last_hidden_state[:, 0, :]
     return query_emb
@@ -79,13 +78,7 @@ def embed_context_dragon(context, user_name="user"): # either could be raw chat_
     tokenizer = AutoTokenizer.from_pretrained('nvidia/dragon-multiturn-query-encoder')
     context_encoder = AutoModel.from_pretrained('nvidia/dragon-multiturn-context-encoder')
     if isinstance(context[-1], dict):
-        formatted_context = [f"{user_name if turn['role'] == 'user' else turn['role']}: {turn['content']}" for turn in context]
-        ctx_input = tokenizer(formatted_context, padding=True, truncation=True, max_length=512, return_tensors='pt')
-        ctx_emb = context_encoder(**ctx_input).last_hidden_state[:, 0, :]
-    else:
-        ctx_input = tokenizer(context, padding=True, truncation=True, max_length=512, return_tensors='pt')
-        ctx_emb = context_encoder(**ctx_input).last_hidden_state[:, 0, :]
-    
+        context = [f"{user_name if turn['role'] == 'user' else turn['role']}: {turn['content']}" for turn in context]
 
 # Function to summarize chat history
 def summary(user_name, chat_history):
