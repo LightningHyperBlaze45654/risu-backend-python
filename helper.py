@@ -16,7 +16,8 @@ def filter_docs_by_words(lorebook, activation_words):
         if any(any(word.lower() in doc.lower() for word in sublist) for sublist in activation_words):
             word_based_docs[doc] = "Activation Word Match"
     return word_based_docs
-# format chat history into a single query string to be used in embedding models
+
+# format chat history into a single query string to be used in embedding models(Isn't used on dragon multiturn)
 def format_chat_history(chat_history):
     return '\n'.join([f"{turn['role']}: {turn['content']}" for turn in chat_history]).strip()
 # Same function, but if role is user, change it to user_name
@@ -61,12 +62,30 @@ def hybrid_lorebook_pulling(chat_history=[], lorebook=[], activation_words=[], p
         return "No additional information"
 
 def embed_chat_history_bgem3(chat_history):
+    model = BGEM3FlagModel('BAAI/bge-m3', use_fp16=True)
     return
-
 
 def embed_chat_history_dragon(chat_history):
-    return
+    tokenizer = AutoTokenizer.from_pretrained('nvidia/dragon-multiturn-query-encoder')
+    query_encoder = AutoModel.from_pretrained('nvidia/dragon-multiturn-query-encoder')
+    # Format chat history(this will be the query)
+    # didn't used user_name formatting here, can be changed
+    formatted_query = format_chat_history(chat_history)
+    query_input = tokenizer(formatted_query, return_tensors='pt')
+    query_emb = query_encoder(**query_input).last_hidden_state[:, 0, :]
+    return query_emb
 
+def embed_context_dragon(context, user_name="user"): # either could be raw chat_history or a summarized text
+    tokenizer = AutoTokenizer.from_pretrained('nvidia/dragon-multiturn-query-encoder')
+    context_encoder = AutoModel.from_pretrained('nvidia/dragon-multiturn-context-encoder')
+    if isinstance(context[-1], dict):
+        formatted_context = [f"{user_name if turn['role'] == 'user' else turn['role']}: {turn['content']}" for turn in context]
+        ctx_input = tokenizer(formatted_context, padding=True, truncation=True, max_length=512, return_tensors='pt')
+        ctx_emb = context_encoder(**ctx_input).last_hidden_state[:, 0, :]
+    else:
+        ctx_input = tokenizer(context, padding=True, truncation=True, max_length=512, return_tensors='pt')
+        ctx_emb = context_encoder(**ctx_input).last_hidden_state[:, 0, :]
+    
 
 # Function to summarize chat history
 def summary(user_name, chat_history):
