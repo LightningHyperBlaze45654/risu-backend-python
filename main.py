@@ -1,6 +1,6 @@
 import json
 from llama_cpp import Llama
-from helper import hybrid_lorebook_pulling, summary, emotion_pull
+from helper import hybrid_lorebook_pulling, emotion_pull
 from monolyth import monolyth_generator
 # Function to append chat history to a JSON file
 def append_chat_history(file_path, chat_list):
