@@ -1,5 +1,6 @@
 # Risu-backend-python
 Inspired by local/multiple API supporting roleplay frontend, RisuAI(https://github.com/kwaroran/RisuAI), but found out that it has some issues with it.
+
 This project is to completely move all functionalities of RisuAI to a single backend, making it easy to connect with frontend. 
 After finishing some functions, I will also make a python based frontend for easy testing. At that point the project will be seperated to different purposes.
 
@@ -14,17 +15,23 @@ v0.0.1 (2024/5/15)
  - Has summary, chat based retrieval functions inside(not used yet)
 hotfix on 2024/5/16
 
+v0.0.2a (2024/05/18)
+ - added supamemory
+ - added tokenizer for models
+ - need a lot of improvements.
+
+
 TODO:
-- Add supa/hypa/hanurai memory [ ]
-- Add Claude, OpenAI, Gemini, Openrouter API and Custom(OpenAI compatible) API support [ ]
-- Add 
-- Add exllamav2, TensorRT-LLM support for local [ ]
-- Add regular expression [ ]
-- Add chat history manipulating function while on chat loop [ ]
-- Add character card creating functions [ ]
-- Create a frontend(required for better testing) [ ] 
-- Add DB for both chat history or vectorDB [ ]
+- [X] Add supa memory 
+- [ ] Add hypa memory 
+- [ ] Add hanurai memory 
+- [ ] Add chat session functions
+- [ ] Add Claude, OpenAI, Gemini, Openrouter API and Custom(OpenAI compatible) API support 
+- [ ] Add exllamav2, TensorRT-LLM support for local 
+- [ ] Add regular expression 
+- [ ] Add chat history manipulating function while on chat loop 
+- [ ] Add character card creating functions
+- [ ] Create a frontend(required for better testing) 
+- [ ] Add DB for both chat history or vectorDB management that could be used on any chatbot service
 
-
-**I hope this could be a great baseline for projects to start!**
-
+MIT license, use as you wish
