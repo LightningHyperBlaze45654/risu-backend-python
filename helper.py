@@ -24,7 +24,6 @@ def format_chat_history(chat_history):
 def format_user_chat_history(chat_history, user_name):
     return '\n'.join([f"{user_name if turn['role'] == 'user' else turn['role']}: {turn['content']}" for turn in chat_history]).strip()
 
-
 # pull relevant documents from the lorebook based on chat history embedding model, activation words match
 def hybrid_lorebook_pulling(chat_history=[], lorebook=[], activation_words=[], prob_threshold=0.2):
     try:
@@ -79,11 +78,27 @@ def embed_context_dragon(context, user_name="user"): # either could be raw chat_
     context_encoder = AutoModel.from_pretrained('nvidia/dragon-multiturn-context-encoder')
     if isinstance(context[-1], dict):
         context = [f"{user_name if turn['role'] == 'user' else turn['role']}: {turn['content']}" for turn in context]
+    ctx_input = tokenizer(context, padding=True, truncation=True, max_length=512, return_tensors='pt')
+    ctx_emb = context_encoder(**ctx_input).last_hidden_state[:, 0, :]
+    return ctx_emb
+
+def similarity_retrieve(query_emb, context_emb, context=[], prob_threshold=0.2):
+    similarities = query_emb.matmul(context_emb.transpose(0, 1))
+    softmax_values = F.softmax(similarities, dim=-1).squeeze()
+    relevant_docs_indices = (softmax_values > prob_threshold).nonzero(as_tuple=True)[0].tolist()
+    relevant_docs = {context[i]: softmax_values[i].item() for i in relevant_docs_indices}
+    return relevant_docs
+
+def max_token_retrieve():
+    # TODO: retrieve chat until max context length is reached
+    return
 
 # Function to summarize chat history
-def summary(user_name, chat_history):
+def summary(user_name, chat_history, model="KoalaAI/ChatSum-Large"):
     formatted_query = format_user_chat_history(chat_history, user_name)
-    chatsum = pipeline("summarization", model="KoalaAI/ChatSum-Large")
+    chatsum = pipeline("summarization", model=model)
+    # gotta use OpenAI or other API embedding someday :P
+    # Need to use classes at that point
     return chatsum(formatted_query)
 
 # Function to pull emotion from text
