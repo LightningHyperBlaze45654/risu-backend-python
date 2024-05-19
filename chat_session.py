@@ -5,10 +5,14 @@ import uuid
 class ChatSession:
     MEMORY_FLAG = "[MEMORY FLAG]"
 
-    def __init__(self, char_name, user_name):
-        self.char_name = char_name
-        self.user_name = user_name
-        self.session_id = self.create_session_id()
+    def __init__(self, char_name=None, chat_name=None, session_id=None):
+        if session_id:
+            self.session_id = session_id
+            self.load_metadata()
+        else:
+            self.char_name = char_name
+            self.chat_name = chat_name
+            self.session_id = self.create_session_id()
         self.session_file_path = self.get_session_file_path()
         self.memory_file_path = self.get_memory_file_path()
         self.history = self.get_chat_history()
@@ -23,10 +27,28 @@ class ChatSession:
     def get_memory_file_path(self):
         return f"./chat_memory/{self.session_id}_memory.json"
 
+    def get_metadata(self):
+        return {
+            "char_name": self.char_name,
+            "chat_name": self.chat_name
+        }
+
+    def load_metadata(self):
+        try:
+            with open(self.get_session_file_path(), 'r') as file:
+                data = json.load(file)
+                metadata = data.get("metadata", {})
+                self.char_name = metadata.get("char_name", "unknown")
+                self.chat_name = metadata.get("chat_name", "unknown")
+        except (json.JSONDecodeError, FileNotFoundError):
+            self.char_name = "unknown"
+            self.chat_name = "unknown"
+
     def get_chat_history(self):
         try:
             with open(self.session_file_path, 'r') as file:
-                history = json.load(file)
+                data = json.load(file)
+                history = data.get("history", [])
         except (json.JSONDecodeError, FileNotFoundError):
             history = []
         return history
@@ -36,8 +58,8 @@ class ChatSession:
             with open(self.session_file_path, 'r') as file:
                 data = json.load(file)
         except (json.JSONDecodeError, FileNotFoundError):
-            data = []
-        data.extend(chat_list)
+            data = {"metadata": self.get_metadata(), "history": []}
+        data["history"].extend(chat_list)
         with open(self.session_file_path, 'w') as file:
             json.dump(data, file, indent=4)
 
@@ -47,7 +69,7 @@ class ChatSession:
         if not os.path.exists("./chat_memory"):
             os.makedirs("./chat_memory")
         with open(self.session_file_path, 'w') as file:
-            json.dump([], file)
+            json.dump({"metadata": self.get_metadata(), "history": []}, file)
         with open(self.memory_file_path, 'w') as file:
             json.dump("", file)  # Initialize with empty memory
 
@@ -90,3 +112,28 @@ class ChatSession:
 
     def remove_memory_flag(self):
         self.history = [entry for entry in self.history if entry != self.MEMORY_FLAG]
+
+    @staticmethod
+    def list_sessions():
+        sessions = []
+        if os.path.exists("./chat_history"):
+            for filename in os.listdir("./chat_history"):
+                if filename.endswith(".json"):
+                    session_id = filename.split(".json")[0]
+                    with open(f"./chat_history/{filename}", 'r') as file:
+                        try:
+                            data = json.load(file)
+                            if isinstance(data, dict) and "metadata" in data:
+                                metadata = data["metadata"]
+                                sessions.append({
+                                    "session_id": session_id,
+                                    "char_name": metadata.get("char_name", "unknown"),
+                                    "chat_name": metadata.get("chat_name", "unknown")
+                                })
+                        except (json.JSONDecodeError, FileNotFoundError):
+                            continue
+        return sessions
+
+    @staticmethod
+    def load_session(session_id):
+        return ChatSession(session_id=session_id)
