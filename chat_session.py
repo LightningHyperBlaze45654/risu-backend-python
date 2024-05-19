@@ -3,6 +3,8 @@ import json
 import uuid
 
 class ChatSession:
+    MEMORY_FLAG = "[MEMORY FLAG]"
+
     def __init__(self, char_name, user_name):
         self.char_name = char_name
         self.user_name = user_name
@@ -69,15 +71,22 @@ class ChatSession:
         with open('./system_prompts/pingpong_test.txt', 'r', encoding='utf-8') as file:
             return file.read()
 
-    def mark_memory_summary(self, summary):
-        self.history.append({"role": "system", "content": f"[Memory Summary: {summary}]"})
-        self.save_memory(summary)
-        self.history = []
+    def mark_memory_summary(self):
+        # Remove existing memory flag if it exists
+        self.history = [entry for entry in self.history if entry != self.MEMORY_FLAG]
+        # Add new memory flag
+        self.history.append(self.MEMORY_FLAG)
+        self.save_memory(self.get_memory())
 
     def get_effective_history(self):
         effective_history = []
+        memory_flag_found = False
         for entry in self.history:
-            if entry['role'] == 'system' and entry['content'].startswith("[Memory Summary:"):
-                break
-            effective_history.append(entry)
+            if entry == self.MEMORY_FLAG:
+                memory_flag_found = True
+            elif not memory_flag_found:
+                effective_history.append(entry)
         return effective_history
+
+    def remove_memory_flag(self):
+        self.history = [entry for entry in self.history if entry != self.MEMORY_FLAG]

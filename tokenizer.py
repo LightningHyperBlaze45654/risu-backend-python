@@ -50,30 +50,3 @@ def text_token_length(text, model_type):
 chat_history = [{'role': "system", 'content': "You are a very helpful assistant"},{'role': "user", 'content': "dududu max verstappen goes vroom"},{'role': "assistant", 'content': "erm what the sigma"},{'role': "user", 'content': "L to you Chatgpt"},]
 
 # TODO: add multimodal tokenizing support, but idk how. HELP
-import time
-
-def loop(model_type):
-    if model_type.lower() not in ["llama3", "mistral", "nai", "trin", "claude", "other"]:
-        print("Invalid model type. Please enter a valid model type from the list: llama3, mistral, nai, trin, claude, other.")
-        return
-
-    print(f"Model selected: {model_type}. Type 'exit' to stop.")
-
-    while True:
-        # Get user input for text
-        text = input("Enter your text: ")
-        if text.lower() == 'exit':
-            print("Exiting the program.")
-            break
-
-        # Measure the time taken to tokenize the text
-        start_time = time.time()
-        token_length = text_token_length(text, model_type)
-        elapsed_time = time.time() - start_time
-
-        print(f"Number of tokens in the provided text: {token_length}")
-        print(f"Time taken for tokenization: {elapsed_time:.8f} seconds")
-
-# Example usage
-model_type = input("Enter the model type to use: ")
-loop(model_type)

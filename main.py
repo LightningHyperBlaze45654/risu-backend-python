@@ -6,15 +6,16 @@ from chat_session import ChatSession
 from memory import supa_memory
 
 class ChatBot:
-    def __init__(self, model_path):
+    def __init__(self, model_path, n_ctx):
         self.llm = Llama(
             model_path=model_path,
             n_gpu_layers=-1,
             temperature=1.0,
-            n_ctx=8192,
+            n_ctx=n_ctx,
             repeat_penalty=2.0,
             verbose=False
         )
+        self.token_limit = n_ctx
 
     def format_system_prompt(self, system_prompt, char_json, chat_history, memory, username):
         char = char_json["char"]
@@ -49,18 +50,18 @@ class ChatBot:
         return monolyth_generator(input_prompt, modelname)
 
 # Main chat loop function
-def chat_loop(model_path, char_name, user_name):
+def chat_loop(model_path, char_name, user_name, n_ctx):
     chat_session = ChatSession(char_name, user_name)
     chat_session.initialize_session_file()
     char_json = chat_session.load_character_data()
     system_prompt = chat_session.load_system_prompt()
 
-    chat_bot = ChatBot(model_path)
+    chat_bot = ChatBot(model_path, n_ctx)
 
     try:
         while True:
             user_input = input("You: ")
-            memory, chat_session.history = supa_memory(chat_session, user_input, token_limit=8192, user_name=user_name, model_type="llama3")
+            memory, chat_session.history = supa_memory(chat_session, user_input, token_limit=chat_bot.token_limit, user_name=user_name, model_type="llama3")
             effective_history = chat_session.get_effective_history()
             response = chat_bot.conversational_memory_lorebook(
                 user_prompt=user_input,
@@ -73,10 +74,15 @@ def chat_loop(model_path, char_name, user_name):
             print("AI:", response['content'])
             current_chat = [{"role": "user", "content": user_input}, response]
             chat_session.append_chat_history(current_chat)
+            if memory:
+                chat_session.mark_memory_summary()
+            else:
+                chat_session.remove_memory_flag()
     except KeyboardInterrupt:
         print(f"Chat stopped for session: {chat_session.session_id}")
 
 # Main entry point
 if __name__ == "__main__":
     model_path = "./models/Llama-3-Soliloquy-8B-v2.Q4_K_M.gguf"
-    chat_loop(model_path, "hatsune_miku", "Hyperblaze")
+    n_ctx = 8192  # Ensure this matches the token limit
+    chat_loop(model_path, "hatsune_miku", "Hyperblaze", n_ctx)
