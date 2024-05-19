@@ -2,97 +2,81 @@ import json
 from llama_cpp import Llama
 from helper import hybrid_lorebook_pulling, emotion_pull
 from monolyth import monolyth_generator
-# Function to append chat history to a JSON file
-def append_chat_history(file_path, chat_list):
-    try:
-        with open(file_path, 'r') as file:
-            data = json.load(file)  # Load the data as a Python list
-    except (json.JSONDecodeError, FileNotFoundError):
-        # If the file is empty or does not exist, start with an empty list
-        data = []
-    data.extend(chat_list)
-    with open(file_path, 'w') as file:
-        json.dump(data, file, indent=4)  # Use `indent` for pretty-printing
+from chat_session import ChatSession
+from memory import supa_memory
 
-# Function to get chat history from a JSON file
-def get_chat_history(file_path):
-    try:
-        with open(file_path, 'r') as file:
-            history = json.load(file)
-    except (json.JSONDecodeError, FileNotFoundError):
-        history = []
-    return history
+class ChatBot:
+    def __init__(self, model_path):
+        self.llm = Llama(
+            model_path=model_path,
+            n_gpu_layers=-1,
+            temperature=1.0,
+            n_ctx=8192,
+            repeat_penalty=2.0,
+            verbose=False
+        )
 
-# Function to format the system prompt using character data and chat history
-def format_system_prompt(system_prompt, char_json, chat_history, memory, username):
-    char = char_json["char"]
-    char_desc = char_json["char_desc"]
-    lorebook = char_json['lorebook']
-    activate_words, lore_list = lorebook['activate_words'], lorebook['lore_list']
-    retrieved_lore = hybrid_lorebook_pulling(chat_history=chat_history[-4:], lorebook=lore_list, activation_words=activate_words)
-    return system_prompt.format(char=char, user=username, char_desc=char_desc, memory=memory, lorebook=retrieved_lore)
+    def format_system_prompt(self, system_prompt, char_json, chat_history, memory, username):
+        char = char_json["char"]
+        char_desc = char_json["char_desc"]
+        lorebook = char_json['lorebook']
+        activate_words, lore_list = lorebook['activate_words'], lorebook['lore_list']
+        retrieved_lore = hybrid_lorebook_pulling(chat_history=chat_history[-4:], lorebook=lore_list, activation_words=activate_words)
+        return system_prompt.format(char=char, user=username, char_desc=char_desc, memory=memory, lorebook=retrieved_lore)
 
-# Function to format the entire prompt for the chat
-def prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory="", username="user"):
-    formatted_prompt = []
-    system_prompt = format_system_prompt(system_prompt, char_json, chat_history, memory, username)
-    formatted_prompt.append({"role": "system", "content": system_prompt})
-    formatted_prompt.extend(chat_history)
-    formatted_prompt.append({"role": "user", "content": user_prompt})
-    return formatted_prompt
+    def prompt_formatter(self, user_prompt, system_prompt, char_json, chat_history, memory="", username="user"):
+        formatted_prompt = []
+        system_prompt = self.format_system_prompt(system_prompt, char_json, chat_history, memory, username)
+        formatted_prompt.append({"role": "system", "content": system_prompt})
+        formatted_prompt.extend(chat_history)
+        formatted_prompt.append({"role": "user", "content": user_prompt})
+        return formatted_prompt
 
-# Function to generate a chat response using the LLM
-def conversational_generator_summary(llm, input_prompt):
-    res = llm.create_chat_completion(
-        messages=input_prompt,
-        temperature=0.8,
-        presence_penalty=0.8
-    )
-    return res['choices'][0]['message']
+    def conversational_generator_summary(self, input_prompt):
+        res = self.llm.create_chat_completion(
+            messages=input_prompt,
+            temperature=0.8,
+            presence_penalty=0.8
+        )
+        return res['choices'][0]['message']
 
-# Function to generate a chat response with lorebook integration
-def conversational_memory_lorebook(llm, user_prompt, system_prompt, char_json, chat_history, memory="", username="user"):
-    input_prompt = prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory, username)
-    return conversational_generator_summary(llm, input_prompt)
+    def conversational_memory_lorebook(self, user_prompt, system_prompt, char_json, chat_history, memory="", username="user"):
+        input_prompt = self.prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory, username)
+        return self.conversational_generator_summary(input_prompt)
 
-def monolyth_conv_memory_lorebook(user_prompt, system_prompt, char_json, chat_history, modelname = "soliloquy-l3", memory="", username="user"):
-    input_prompt = prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory, username)
-    return monolyth_generator(input_prompt, modelname)
-
+    def monolyth_conv_memory_lorebook(self, user_prompt, system_prompt, char_json, chat_history, modelname="soliloquy-l3", memory="", username="user"):
+        input_prompt = self.prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory, username)
+        return monolyth_generator(input_prompt, modelname)
 
 # Main chat loop function
-def chat_loop(llm, char_name, user_name):
-    history = get_chat_history("./chat_history/chat.json")
-    with open(f'./character_prompts/{char_name}.json', 'r', encoding='utf-8') as file:
-        char_json = json.load(file)
-    with open('./system_prompts/pingpong_test.txt', 'r', encoding='utf-8') as file:
-        system_prompt = file.read()
+def chat_loop(model_path, char_name, user_name):
+    chat_session = ChatSession(char_name, user_name)
+    chat_session.initialize_session_file()
+    char_json = chat_session.load_character_data()
+    system_prompt = chat_session.load_system_prompt()
+
+    chat_bot = ChatBot(model_path)
+
     try:
         while True:
             user_input = input("You: ")
-            response = conversational_memory_lorebook(
-                llm=llm,
+            memory, chat_session.history = supa_memory(chat_session, user_input, token_limit=8192, user_name=user_name, model_type="llama3")
+            effective_history = chat_session.get_effective_history()
+            response = chat_bot.conversational_memory_lorebook(
                 user_prompt=user_input,
                 system_prompt=system_prompt,
                 char_json=char_json,
-                chat_history=history[-100:],
+                chat_history=effective_history,
+                memory=memory,
                 username=user_name
             )
             print("AI:", response['content'])
             current_chat = [{"role": "user", "content": user_input}, response]
-            history.extend(current_chat)
-            append_chat_history("./chat_history/chat.json", current_chat)
+            chat_session.append_chat_history(current_chat)
     except KeyboardInterrupt:
-        print("Chat stopped")
+        print(f"Chat stopped for session: {chat_session.session_id}")
 
 # Main entry point
 if __name__ == "__main__":
-    llm = Llama(
-        model_path="./models/Llama-3-Soliloquy-8B-v2.Q4_K_M.gguf",
-        n_gpu_layers=-1,
-        temperature=1.0,
-        n_ctx=8192,
-        repeat_penalty=2.0,
-        verbose=False
-    )
-    chat_loop(llm, "hatsune_miku", "Hyperblaze")
+    model_path = "./models/Llama-3-Soliloquy-8B-v2.Q4_K_M.gguf"
+    chat_loop(model_path, "hatsune_miku", "Hyperblaze")
