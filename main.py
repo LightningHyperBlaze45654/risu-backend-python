@@ -4,9 +4,20 @@ from helper import hybrid_lorebook_pulling, emotion_pull
 from monolyth import monolyth_generator
 from chat_session import ChatSession
 from memory import supa_memory
+from tokenizer import text_token_length
 
 class ChatBot:
+    '''
+    ChatBot class handles the interaction with the LLM.
+    '''
     def __init__(self, model_path, n_ctx):
+        '''
+        Initializes the ChatBot with the LLM model.
+        
+        Args:
+            model_path (str): The path to the LLM model.
+            n_ctx (int): The context size for the LLM.
+        '''
         self.llm = Llama(
             model_path=model_path,
             n_gpu_layers=-1,
@@ -18,6 +29,19 @@ class ChatBot:
         self.token_limit = n_ctx
 
     def format_system_prompt(self, system_prompt, char_json, chat_history, memory, username):
+        '''
+        Formats the system prompt by inserting character and lorebook information into the prompt template.
+        
+        Args:
+            system_prompt (str): The system prompt template.
+            char_json (dict): The character data.
+            chat_history (list): The chat history.
+            memory (str): The memory summary.
+            username (str): The name of the user.
+        
+        Returns:
+            str: The formatted system prompt.
+        '''
         char = char_json["char"]
         char_desc = char_json["char_desc"]
         lorebook = char_json['lorebook']
@@ -26,6 +50,20 @@ class ChatBot:
         return system_prompt.format(char=char, user=username, char_desc=char_desc, memory=memory, lorebook=retrieved_lore)
 
     def prompt_formatter(self, user_prompt, system_prompt, char_json, chat_history, memory="", username="user"):
+        '''
+        Constructs the full prompt for the LLM by combining the system prompt, chat history, and user input.
+        
+        Args:
+            user_prompt (str): The user's input.
+            system_prompt (str): The system prompt template.
+            char_json (dict): The character data.
+            chat_history (list): The chat history.
+            memory (str): The memory summary.
+            username (str): The name of the user.
+        
+        Returns:
+            list: The formatted prompt for the LLM.
+        '''
         formatted_prompt = []
         system_prompt = self.format_system_prompt(system_prompt, char_json, chat_history, memory, username)
         formatted_prompt.append({"role": "system", "content": system_prompt})
@@ -34,6 +72,15 @@ class ChatBot:
         return formatted_prompt
 
     def conversational_generator_summary(self, input_prompt):
+        '''
+        Generates a response from the LLM using the provided input prompt.
+        
+        Args:
+            input_prompt (list): The formatted input prompt.
+        
+        Returns:
+            dict: The response from the LLM.
+        '''
         res = self.llm.create_chat_completion(
             messages=input_prompt,
             temperature=0.8,
@@ -42,14 +89,49 @@ class ChatBot:
         return res['choices'][0]['message']
 
     def conversational_memory_lorebook(self, user_prompt, system_prompt, char_json, chat_history, memory="", username="user"):
+        '''
+        Generates a response from the LLM, integrating the formatted prompt with memory and lorebook information.
+        
+        Args:
+            user_prompt (str): The user's input.
+            system_prompt (str): The system prompt template.
+            char_json (dict): The character data.
+            chat_history (list): The chat history.
+            memory (str): The memory summary.
+            username (str): The name of the user.
+        
+        Returns:
+            dict: The response from the LLM.
+        '''
         input_prompt = self.prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory, username)
         return self.conversational_generator_summary(input_prompt)
 
     def monolyth_conv_memory_lorebook(self, user_prompt, system_prompt, char_json, chat_history, modelname="soliloquy-l3", memory="", username="user"):
+        '''
+        Uses a different generator (monolyth_generator) to produce a response from the LLM.
+        
+        Args:
+            user_prompt (str): The user's input.
+            system_prompt (str): The system prompt template.
+            char_json (dict): The character data.
+            chat_history (list): The chat history.
+            modelname (str): The model name for the generator.
+            memory (str): The memory summary.
+            username (str): The name of the user.
+        
+        Returns:
+            dict: The response from the generator.
+        '''
         input_prompt = self.prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory, username)
         return monolyth_generator(input_prompt, modelname)
 
 def select_chat_session():
+    '''
+    Lists all available chat sessions and allows the user to select an existing session or create a new one.
+    
+    Returns:
+        ChatSession: The selected or created chat session.
+    '''
     sessions = ChatSession.list_sessions()
     if not sessions:
         print("No existing sessions found.")
@@ -72,6 +154,16 @@ def select_chat_session():
 
 # Main chat loop function
 def chat_loop(model_path, n_ctx):
+    '''
+    Main function that manages the chat loop. Allows the user to select or create a chat session.
+    Loads character data and system prompt. Continuously processes user input, generates responses,
+    and updates the chat history. Handles memory management by marking and removing memory flags as needed.
+    Ensures the session is saved and can be resumed later.
+    
+    Args:
+        model_path (str): The path to the LLM model.
+        n_ctx (int): The context size for the LLM.
+    '''
     chat_session = select_chat_session()
     if not chat_session:
         char_name = input("Enter the character name: ")
@@ -79,15 +171,16 @@ def chat_loop(model_path, n_ctx):
         chat_session = ChatSession(char_name, chat_name)
         chat_session.initialize_session_file()
     char_json = chat_session.load_character_data()
-    system_prompt = chat_session.load_system_prompt()
+    system_prompt_template = chat_session.load_system_prompt()
 
     chat_bot = ChatBot(model_path, n_ctx)
 
     try:
         while True:
             user_input = input("You: ")
-            memory, chat_session.history = supa_memory(chat_session, user_input, token_limit=chat_bot.token_limit, user_name="User", model_type="llama3")
+            memory, chat_session.history = supa_memory(chat_session, user_input, token_limit=chat_bot.token_limit, user_name="User", model_type="llama3", system_prompt_template=system_prompt_template, char_json=char_json, chat_history=chat_session.history, memory=chat_session.memory)
             effective_history = chat_session.get_effective_history()
+            system_prompt = chat_bot.format_system_prompt(system_prompt_template, char_json, effective_history, memory, "User")
             response = chat_bot.conversational_memory_lorebook(
                 user_prompt=user_input,
                 system_prompt=system_prompt,
@@ -99,10 +192,6 @@ def chat_loop(model_path, n_ctx):
             print("AI:", response['content'])
             current_chat = [{"role": "user", "content": user_input}, response]
             chat_session.append_chat_history(current_chat)
-            if memory:
-                chat_session.mark_memory_summary()
-            else:
-                chat_session.remove_memory_flag()
     except KeyboardInterrupt:
         print(f"Chat stopped for session: {chat_session.session_id}")
 

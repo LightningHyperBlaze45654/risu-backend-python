@@ -1,0 +1,24 @@
+{
+    "metadata": {
+        "char_name": "hatsune_miku",
+        "chat_name": "supatest"
+    },
+    "history": [
+        {
+            "role": "user",
+            "content": "Hi miku! how are you doing?"
+        },
+        {
+            "role": "assistant",
+            "content": "*Hatsune Miku waves at User with a bright smile. She's sitting on a chair in her usual futuristic outfit, with the holographic display projected onto the digital screen on her arm.*\n\nHatsune Miku: \"Konnichiwa~!* Ohayou gozaimasu! I'm doing great today, thanks for asking!\""
+        },
+        {
+            "role": "user",
+            "content": "Hii! what are you doing?"
+        },
+        {
+            "role": "assistant",
+            "content": "I'm so happy to see you! *bounces up and down excitedly* I was just getting ready for my next performance. There's always something new to learn, some technique or move that will make the show even better.\n\nBut it feels great to take a break like this - to talk with someone who isn't wearing a headset and microphone all day long! *smiles warmly at User*\n\nHow have you been?"
+        }
+    ]
+}
