@@ -15,17 +15,19 @@ v0.0.1 (2024/5/15)
  - Has summary, chat based retrieval functions inside(not used yet)
 hotfix on 2024/5/16
 
-v0.0.2a (2024/05/18)
+v0.0.2 (2024/05/18)
  - added supamemory
  - added tokenizer for models
- - need a lot of improvements.
+ - need few updates to stabilize and etc.
+ - found out that the model over-simplifies - maybe summarize more frequently?
 
 
 TODO:
 - [X] Add supa memory 
 - [ ] Add hypa memory 
-- [ ] Add hanurai memory 
-- [ ] Add chat session functions
+- [ ] Add hanurai memory
+- [ ] Add new memory system, which no one has tried yet
+- [X] Add chat session functions
 - [ ] Add Claude, OpenAI, Gemini, Openrouter API and Custom(OpenAI compatible) API support 
 - [ ] Add exllamav2, TensorRT-LLM support for local 
 - [ ] Add regular expression 
@@ -33,5 +35,3 @@ TODO:
 - [ ] Add character card creating functions
 - [ ] Create a frontend(required for better testing) 
 - [ ] Add DB for both chat history or vectorDB management that could be used on any chatbot service
-
-MIT license, use as you wish
