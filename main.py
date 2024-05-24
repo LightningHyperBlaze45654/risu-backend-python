@@ -28,7 +28,7 @@ class ChatBot:
         )
         self.token_limit = n_ctx
 
-    def format_system_prompt(self, system_prompt, char_json, chat_history, memory, username):
+    def format_system_prompt(self, system_prompt, char_json, chat_history, memory, username, retrieved_lore):
         '''
         Formats the system prompt by inserting character and lorebook information into the prompt template.
         
@@ -38,18 +38,16 @@ class ChatBot:
             chat_history (list): The chat history.
             memory (str): The memory summary.
             username (str): The name of the user.
+            retrieved_lore (str): The retrieved lorebook content.
         
         Returns:
             str: The formatted system prompt.
         '''
         char = char_json["char"]
         char_desc = char_json["char_desc"]
-        lorebook = char_json['lorebook']
-        activate_words, lore_list = lorebook['activate_words'], lorebook['lore_list']
-        retrieved_lore = hybrid_lorebook_pulling(chat_history=chat_history[-4:], lorebook=lore_list, activation_words=activate_words)
         return system_prompt.format(char=char, user=username, char_desc=char_desc, memory=memory, lorebook=retrieved_lore)
 
-    def prompt_formatter(self, user_prompt, system_prompt, char_json, chat_history, memory="", username="user"):
+    def prompt_formatter(self, user_prompt, system_prompt, char_json, chat_history, memory="", username="user", retrieved_lore=""):
         '''
         Constructs the full prompt for the LLM by combining the system prompt, chat history, and user input.
         
@@ -60,12 +58,13 @@ class ChatBot:
             chat_history (list): The chat history.
             memory (str): The memory summary.
             username (str): The name of the user.
+            retrieved_lore (str): The retrieved lorebook content.
         
         Returns:
             list: The formatted prompt for the LLM.
         '''
         formatted_prompt = []
-        system_prompt = self.format_system_prompt(system_prompt, char_json, chat_history, memory, username)
+        system_prompt = self.format_system_prompt(system_prompt, char_json, chat_history, memory, username, retrieved_lore)
         formatted_prompt.append({"role": "system", "content": system_prompt})
         formatted_prompt.extend(chat_history)
         formatted_prompt.append({"role": "user", "content": user_prompt})
@@ -88,7 +87,7 @@ class ChatBot:
         )
         return res['choices'][0]['message']
 
-    def conversational_memory_lorebook(self, user_prompt, system_prompt, char_json, chat_history, memory="", username="user"):
+    def conversational_memory_lorebook(self, user_prompt, system_prompt, char_json, chat_history, memory="", username="user", retrieved_lore=""):
         '''
         Generates a response from the LLM, integrating the formatted prompt with memory and lorebook information.
         
@@ -99,14 +98,15 @@ class ChatBot:
             chat_history (list): The chat history.
             memory (str): The memory summary.
             username (str): The name of the user.
+            retrieved_lore (str): The retrieved lorebook content.
         
         Returns:
             dict: The response from the LLM.
         '''
-        input_prompt = self.prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory, username)
+        input_prompt = self.prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory, username, retrieved_lore)
         return self.conversational_generator_summary(input_prompt)
 
-    def monolyth_conv_memory_lorebook(self, user_prompt, system_prompt, char_json, chat_history, modelname="soliloquy-l3", memory="", username="user"):
+    def monolyth_conv_memory_lorebook(self, user_prompt, system_prompt, char_json, chat_history, modelname="soliloquy-l3", memory="", username="user", retrieved_lore=""):
         '''
         Uses a different generator (monolyth_generator) to produce a response from the LLM.
         
@@ -118,11 +118,12 @@ class ChatBot:
             modelname (str): The model name for the generator.
             memory (str): The memory summary.
             username (str): The name of the user.
+            retrieved_lore (str): The retrieved lorebook content.
         
         Returns:
             dict: The response from the generator.
         '''
-        input_prompt = self.prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory, username)
+        input_prompt = self.prompt_formatter(user_prompt, system_prompt, char_json, chat_history, memory, username, retrieved_lore)
         return monolyth_generator(input_prompt, modelname)
 
 def select_chat_session():
@@ -175,19 +176,24 @@ def chat_loop(model_path, n_ctx):
 
     chat_bot = ChatBot(model_path, n_ctx)
 
+    lorebook = char_json['lorebook']
+    activate_words, lore_list = lorebook['activate_words'], lorebook['lore_list']
+    retrieved_lore = hybrid_lorebook_pulling(chat_history=chat_session.history[-4:], lorebook=lore_list, activation_words=activate_words)
+
     try:
         while True:
             user_input = input("You: ")
-            memory, chat_session.history = supa_memory(chat_session, user_input, token_limit=chat_bot.token_limit, user_name="User", model_type="llama3", system_prompt_template=system_prompt_template, char_json=char_json, chat_history=chat_session.history, memory=chat_session.memory)
+            memory, chat_session.history = supa_memory(chat_session, user_input, token_limit=chat_bot.token_limit, user_name="User", model_type="llama3", system_prompt_template=system_prompt_template, char_json=char_json, chat_history=chat_session.history, memory=chat_session.memory, retrieved_lore=retrieved_lore)
             effective_history = chat_session.get_effective_history()
-            system_prompt = chat_bot.format_system_prompt(system_prompt_template, char_json, effective_history, memory, "User")
+            system_prompt = chat_bot.format_system_prompt(system_prompt_template, char_json, effective_history, memory, "User", retrieved_lore)
             response = chat_bot.conversational_memory_lorebook(
                 user_prompt=user_input,
                 system_prompt=system_prompt,
                 char_json=char_json,
                 chat_history=effective_history,
                 memory=memory,
-                username="User"
+                username="User",
+                retrieved_lore=retrieved_lore
             )
             print("AI:", response['content'])
             current_chat = [{"role": "user", "content": user_input}, response]

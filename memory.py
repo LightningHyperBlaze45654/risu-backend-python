@@ -2,7 +2,7 @@ from helper import summarize_history
 from tokenizer import history_token_length, text_token_length
 from chat_session import ChatSession
 
-def supa_memory(chat_session, user_input, token_limit, user_name, model_type, system_prompt_template, char_json, chat_history, memory):
+def supa_memory(chat_session, user_input, token_limit, user_name, model_type, system_prompt_template, char_json, chat_history, memory, retrieved_lore):
     '''
     Manages memory by summarizing chat history when the token limit is exceeded.
     
@@ -16,11 +16,12 @@ def supa_memory(chat_session, user_input, token_limit, user_name, model_type, sy
         char_json (dict): The character data.
         chat_history (list): The chat history.
         memory (list): The memory summary.
+        retrieved_lore (str): The retrieved lorebook content.
         
     Returns:
         tuple: A tuple containing the summary text and the new chat history.
     '''
-    system_prompt = system_prompt_template.format(char=char_json["char"], user=user_name, char_desc=char_json["char_desc"], memory=memory, lorebook="")
+    system_prompt = system_prompt_template.format(char=char_json["char"], user=user_name, char_desc=char_json["char_desc"], memory=memory, lorebook=retrieved_lore)
     system_prompt_length = text_token_length(system_prompt, model_type=model_type)
     current_total_length = history_token_length(chat_history=chat_history, model_type=model_type) + text_token_length(user_input, model_type=model_type) + system_prompt_length
 
