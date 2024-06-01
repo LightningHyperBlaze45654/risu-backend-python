@@ -103,12 +103,12 @@ class ChatSession:
             chat_list (list): The list of new chat entries to append.
         '''
         try:
-            with open(self.session_file_path(), 'r') as file:
+            with open(self.session_file_path, 'r') as file:
                 data = json.load(file)
         except (json.JSONDecodeError, FileNotFoundError):
             data = {"metadata": self.get_metadata(), "history": []}
         data["history"].extend(chat_list)
-        with open(self.session_file_path(), 'w') as file:
+        with open(self.session_file_path, 'w') as file:
             json.dump(data, file, indent=4)
 
     def initialize_session_file(self):
@@ -119,9 +119,9 @@ class ChatSession:
             os.makedirs("./chat_history")
         if not os.path.exists("./chat_memory"):
             os.makedirs("./chat_memory")
-        with open(self.session_file_path(), 'w') as file:
+        with open(self.session_file_path, 'w') as file:
             json.dump({"metadata": self.get_metadata(), "history": []}, file)
-        with open(self.memory_file_path(), 'w') as file:
+        with open(self.memory_file_path, 'w') as file:
             json.dump([], file)  # Initialize with empty memory
 
     def get_memory(self):
@@ -132,7 +132,7 @@ class ChatSession:
             list: The memory summary.
         '''
         try:
-            with open(self.memory_file_path(), 'r') as file:
+            with open(self.memory_file_path, 'r') as file:
                 memory = json.load(file)
         except (json.JSONDecodeError, FileNotFoundError):
             memory = []
@@ -145,7 +145,7 @@ class ChatSession:
         Args:
             memory (list): The memory summary to save.
         '''
-        with open(self.memory_file_path(), 'w') as file:
+        with open(self.memory_file_path, 'w') as file:
             json.dump(memory, file)
 
     def load_character_data(self):
@@ -223,7 +223,7 @@ class ChatSession:
         '''
         Saves the chat history to the session file.
         '''
-        with open(self.session_file_path(), 'w') as file:
+        with open(self.session_file_path, 'w') as file:
             json.dump({"metadata": self.get_metadata(), "history": self.history}, file, indent=4)
 
     def recreate_memory(self):
@@ -234,7 +234,7 @@ class ChatSession:
         self.save_memory(self.memory)
         # Re-summarize the entire history
         from memory import supa_memory  # Import here to avoid circular import issues
-        memory, self.history = supa_memory(self, "", self.token_limit, "User", "llama3", self.load_system_prompt(), self.load_character_data(), self.history, self.memory)
+        memory, self.history = supa_memory(self, "", self.token_limit, "User", "llama3", self.load_system_prompt(), self.load_character_data(), self.history, self.memory, "")
         self.save_chat_history()
         self.save_memory(self.memory)
 

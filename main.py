@@ -154,7 +154,7 @@ def select_chat_session():
         return select_chat_session()
 
 # Main chat loop function
-def chat_loop(model_path, n_ctx):
+def chat_loop(model_path, n_ctx, summary_threshold=3000):
     '''
     Main function that manages the chat loop. Allows the user to select or create a chat session.
     Loads character data and system prompt. Continuously processes user input, generates responses,
@@ -164,6 +164,7 @@ def chat_loop(model_path, n_ctx):
     Args:
         model_path (str): The path to the LLM model.
         n_ctx (int): The context size for the LLM.
+        summary_threshold (int): The token threshold for periodic summarization.
     '''
     chat_session = select_chat_session()
     if not chat_session:
@@ -183,7 +184,7 @@ def chat_loop(model_path, n_ctx):
     try:
         while True:
             user_input = input("You: ")
-            memory, chat_session.history = supa_memory(chat_session, user_input, token_limit=chat_bot.token_limit, user_name="User", model_type="llama3", system_prompt_template=system_prompt_template, char_json=char_json, chat_history=chat_session.history, memory=chat_session.memory, retrieved_lore=retrieved_lore)
+            memory, chat_session.history = supa_memory(chat_session, user_input, token_limit=chat_bot.token_limit, user_name="User", model_type="llama3", system_prompt_template=system_prompt_template, char_json=char_json, chat_history=chat_session.history, memory=chat_session.memory, retrieved_lore=retrieved_lore, summary_threshold=summary_threshold)
             effective_history = chat_session.get_effective_history()
             system_prompt = chat_bot.format_system_prompt(system_prompt_template, char_json, effective_history, memory, "User", retrieved_lore)
             response = chat_bot.conversational_memory_lorebook(
@@ -205,4 +206,5 @@ def chat_loop(model_path, n_ctx):
 if __name__ == "__main__":
     model_path = "./models/Llama-3-Soliloquy-8B-v2.Q4_K_M.gguf"
     n_ctx = 8192  # Ensure this matches the token limit
-    chat_loop(model_path, n_ctx)
+    summary_threshold = 3000  # Define the token threshold for periodic summarization
+    chat_loop(model_path, n_ctx, summary_threshold)

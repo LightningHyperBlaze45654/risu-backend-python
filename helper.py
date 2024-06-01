@@ -94,7 +94,7 @@ def max_token_retrieve():
     return
 
 # Function to summarize chat history
-def summarize_history(user_name, chat_history, model="KoalaAI/ChatSum-Large"):
+def summarize_history(user_name, chat_history, model="Huzaifa367/chat-summarizer"):
     formatted_query = format_user_chat_history(chat_history, user_name)
     chatsum = pipeline("summarization", model=model)
     # gotta use OpenAI or other API embedding someday :P
