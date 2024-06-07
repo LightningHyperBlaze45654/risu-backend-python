@@ -1,2 +1,3 @@
-
+*.onnx
+*.data
 *.gguf
