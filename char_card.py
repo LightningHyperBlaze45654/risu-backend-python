@@ -1,7 +1,7 @@
 import struct
 import base64
 
-def extract_all_text_chunks(file_path):
+def extract_and_save_png_chunks(file_path, output_dir):
     with open(file_path, 'rb') as f:
         # Skip the 8-byte PNG file signature
         png_signature = f.read(8)
@@ -28,18 +28,23 @@ def extract_all_text_chunks(file_path):
                 keyword_data, text_data = chunk_data.split(b'\x00', 1)
                 keyword = keyword_data.decode('ascii')
                 
-                # Decode the base64 text data to utf-8
-                try:
-                    decoded_text = base64.b64decode(text_data).decode('utf-8')
-                except (base64.binascii.Error, UnicodeDecodeError):
-                    decoded_text = text_data.decode('latin-1')
-                
-                print(f"Keyword: {keyword}")
-                print(f"Text: {decoded_text}")
-                print('---')
+                if keyword != 'chara':
+                    try:
+                        # Decode the base64 text data to binary
+                        png_data = base64.b64decode(text_data)
+                        
+                        # Save the binary data as a PNG file
+                        output_file_path = f"{output_dir}/{keyword}.png"
+                        with open(output_file_path, 'wb') as output_file:
+                            output_file.write(png_data)
+                        
+                        print(f"Extracted PNG for keyword '{keyword}' saved as {output_file_path}")
+                    except (base64.binascii.Error, UnicodeDecodeError) as e:
+                        print(f"Failed to decode base64 data for keyword '{keyword}': {e}")
     
-    print("Finished reading all tEXt chunks.")
+    print("Finished extracting and saving PNG chunks.")
 
 # Usage example
 file_path = './test.png'
-extract_all_text_chunks(file_path)
+output_dir = './test_assets'
+extract_and_save_png_chunks(file_path, output_dir)
