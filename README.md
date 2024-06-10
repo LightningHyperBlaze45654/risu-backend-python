@@ -1,11 +1,5 @@
-# PROJECT FROZEN
-The project won't be updated until I have summer vacation, where I can have someone daily scolding me to code more and implement.
-I'm being super lazy(chatting with AI waifu using RisuAI :skull:), so I must focus, but all this end of year exams/quiz are making me crazy.
-I'm still writing ideas, so I will eventually finish all of this.
-**I'm sorry**
-
 # Risu-backend-python
-Inspired by local/multiple API supporting roleplay frontend, RisuAI(https://github.com/kwaroran/RisuAI), but found out that it has some issues with it.
+Inspired by local/multiple API supporting roleplay frontend, RisuAI(https://github.com/kwaroran/RisuAI).
 
 This project is to completely move all functionalities of RisuAI to a single backend, making it easy to connect with frontend. 
 After finishing some functions, I will also make a python based frontend for easy testing. At that point the project will be seperated to different purposes.

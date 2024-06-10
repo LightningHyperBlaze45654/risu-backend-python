@@ -1,9 +1,34 @@
-import struct
-import base64
-import json
 import os
+import json
+import base64
+import struct
+import zipfile
 
-def extract_and_save_png_chunks(file_path, output_dir):
+def save_character_data(character_data, output_dir):
+    character_name = character_data["data"]["name"]
+    spec = character_data.get("spec", "")
+    spec_version = character_data.get("spec_version", "")
+
+    if spec == "chara_card_v2" and spec_version == "2.0":
+        version_dir = "character_cards_v2"
+    elif spec == "chara_card_v3" and spec_version == "3.0":
+        version_dir = "character_cards_v3"
+    else:
+        print(f"Unsupported character card version: spec={spec}, spec_version={spec_version}")
+        return
+
+    chara_dir = os.path.join(output_dir, version_dir, character_name)
+    os.makedirs(chara_dir, exist_ok=True)
+
+    # Save the JSON data
+    json_file_path = os.path.join(chara_dir, f"{character_name}.json")
+    with open(json_file_path, 'w', encoding='utf-8') as json_file:
+        json.dump(character_data, json_file, ensure_ascii=False, indent=4)
+
+    print(f"Extracted JSON for character '{character_name}' saved as {json_file_path}")
+    return chara_dir
+
+def extract_ccv3_from_png(file_path, output_dir):
     with open(file_path, 'rb') as f:
         # Skip the 8-byte PNG file signature
         png_signature = f.read(8)
@@ -34,8 +59,17 @@ def extract_and_save_png_chunks(file_path, output_dir):
                 keyword_data, text_data = chunk_data.split(b'\x00', 1)
                 keyword = keyword_data.decode('ascii')
                 
-                if keyword == 'chara':
+                if keyword == 'ccv3':
                     # This is the base64 encoded JSON data for character
+                    try:
+                        # Decode the base64 encoded text data
+                        chara_json_data = base64.b64decode(text_data).decode('utf-8')
+                        character_data = json.loads(chara_json_data)
+                        character_name = character_data["data"]["name"]
+                    except (json.JSONDecodeError, base64.binascii.Error) as e:
+                        print(f"Failed to decode JSON data for keyword 'ccv3': {e}")
+                elif keyword == 'chara':
+                    # This is the base64 encoded JSON data for Character Card V2
                     try:
                         # Decode the base64 encoded text data
                         chara_json_data = base64.b64decode(text_data).decode('utf-8')
@@ -52,27 +86,47 @@ def extract_and_save_png_chunks(file_path, output_dir):
                         print(f"Failed to decode base64 data for keyword '{keyword}': {e}")
 
         # After processing all chunks, save the character JSON data and pending PNGs if available
-        if character_data and character_name:
-            chara_dir = os.path.join(output_dir, character_name)
-            os.makedirs(chara_dir, exist_ok=True)
+        if character_data:
+            chara_dir = save_character_data(character_data, output_dir)
             
-            # Save the JSON data
-            json_file_path = os.path.join(chara_dir, f"{character_name}.json")
-            with open(json_file_path, 'w', encoding='utf-8') as json_file:
-                json.dump(character_data, json_file, ensure_ascii=False, indent=4)
-            
-            print(f"Extracted JSON for character '{character_name}' saved as {json_file_path}")
-            
-            # Save the pending PNG files in the character's directory
-            for keyword, png_data in pending_pngs:
-                output_file_path = os.path.join(chara_dir, f"{keyword}.png")
-                with open(output_file_path, 'wb') as output_file:
-                    output_file.write(png_data)
-                print(f"Extracted PNG for keyword '{keyword}' saved as {output_file_path}")
-    
-    print("Finished extracting and saving PNG and JSON chunks.")
+            if chara_dir:
+                # Save the pending PNG files in the character's directory
+                for keyword, png_data in pending_pngs:
+                    output_file_path = os.path.join(chara_dir, f"{keyword}.png")
+                    with open(output_file_path, 'wb') as output_file:
+                        output_file.write(png_data)
+                    print(f"Extracted PNG for keyword '{keyword}' saved as {output_file_path}")
+
+def extract_ccv3_from_json(file_path, output_dir):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        character_data = json.load(f)
+        save_character_data(character_data, output_dir)
+
+def extract_ccv3_from_charx(file_path, output_dir):
+    with zipfile.ZipFile(file_path, 'r') as zip_ref:
+        # Extract the CharacterCardV3 JSON data
+        with zip_ref.open('card.json') as json_file:
+            character_data = json.load(json_file)
+            chara_dir = save_character_data(character_data, output_dir)
+        
+        # Extract assets
+        if chara_dir:
+            for file_info in zip_ref.infolist():
+                if file_info.filename != 'card.json':
+                    extracted_path = zip_ref.extract(file_info, chara_dir)
+                    print(f"Extracted asset '{file_info.filename}' saved as {extracted_path}")
+
+def extract_ccv3(file_path, output_dir):
+    if file_path.endswith(('.png', '.apng')):
+        extract_ccv3_from_png(file_path, output_dir)
+    elif file_path.endswith('.json'):
+        extract_ccv3_from_json(file_path, output_dir)
+    elif file_path.endswith('.charx'):
+        extract_ccv3_from_charx(file_path, output_dir)
+    else:
+        print(f"Unsupported file type: {file_path}")
 
 # Usage example
-file_path = './cherry.png'
-output_dir = './character_cards'
-extract_and_save_png_chunks(file_path, output_dir)
+file_path = './char_card_upload/cherry.charx'  # Replace with your file path
+output_dir = './character_cards'  # Replace with your output directory
+extract_ccv3(file_path, output_dir)
