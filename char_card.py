@@ -126,7 +126,12 @@ def extract_ccv3(file_path, output_dir):
     else:
         print(f"Unsupported file type: {file_path}")
 
+
+def export_ccv3(card_json, asset_dir, output_type):
+    # create ccv3 card with dedicated type.
+    # output_type selects one of png, charx, and json.
+    return # TODO
 # Usage example
-file_path = './char_card_upload/cherry.charx'  # Replace with your file path
+file_path = './char_card_upload/1.png'  # Replace with your file path
 output_dir = './character_cards'  # Replace with your output directory
 extract_ccv3(file_path, output_dir)
